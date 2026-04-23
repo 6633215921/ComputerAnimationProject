@@ -47,7 +47,7 @@ public:
     int width, height;
     int numStrips, numTrisPerStrip;
 
-    // �ѧ��ѹ���´֧��Ҥ����٧ (y) �ҡ�����ŴԺ ��ШѴ��âͺ�Ҿ (Clamp)
+    // ฟังก์ชันช่วยดึงค่าความสูง (y) จากข้อมูลดิบ และจัดการขอบภาพ (Clamp)
     float getHeight(int x, int z, unsigned char* data, int w, int h, int chan) {
         if (x < 0) x = 0; if (x >= h) x = h - 1;
         if (z < 0) z = 0; if (z >= w) z = w - 1;
@@ -71,22 +71,22 @@ public:
                 float posX = (-height / 2.0f + i) * hScale;
                 float posZ = (-width / 2.0f + j) * hScale;
 
-                // --- 2. �ӹǳ Normal Ẻ����ԧ ---
-                // �֧�����٧���͹��ҹ (���� ��� �� ��ҧ)
+                // --- 2. คำนวณ Normal แบบสมจริง ---
+                // ดึงความสูงเพื่อนบ้าน (ซ้าย ขวา บน ล่าง)
                 float hL = getHeight(i - 1, j, data, width, height, nrChannels) * yScale;
                 float hR = getHeight(i + 1, j, data, width, height, nrChannels) * yScale;
                 float hD = getHeight(i, j - 1, data, width, height, nrChannels) * yScale;
                 float hU = getHeight(i, j + 1, data, width, height, nrChannels) * yScale;
 
-                // �ٵäӹǳ Normal �ҡ������ҧ�ͧ�����٧
-                // hScale * 2.0 ���������ҧ�����ҧ�ش��š 3D
+                // สูตรคำนวณ Normal จากความต่างของความสูง
+                // hScale * 2.0 คือระยะห่างระหว่างจุดในโลก 3D
                 glm::vec3 normal;
                 normal.x = hL - hR;
                 normal.y = 2.0f * hScale;
                 normal.z = hD - hU;
                 normal = glm::normalize(normal);
 
-                // ��������� Array
+                // ใส่ข้อมูลใน Array
                 vertices.push_back(posX);
                 vertices.push_back(posY);
                 vertices.push_back(posZ);
@@ -101,7 +101,7 @@ public:
         }
         stbi_image_free(data);
 
-        // 2. ���ҧ Indices
+        // 2. สร้าง Indices
         std::vector<unsigned int> indices;
         for (int i = 0; i < height - 1; i++) {
             for (int j = 0; j < width; j++) {
@@ -125,7 +125,7 @@ public:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainIBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
-        // Stride ��� 8 (3 Pos + 3 Norm + 2 Tex)
+        // Stride คือ 8 (3 Pos + 3 Norm + 2 Tex)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
@@ -143,7 +143,7 @@ public:
 };
 
 // -----------------------------------------------------------
-// 1. �ѧ��ѹ���¤ӹǳ��ȷҧ˹������ͧ�Թ 
+// 1. ฟังก์ชันช่วยคำนวณทิศทางหน้าเครื่องบิน 
 // -----------------------------------------------------------
 glm::vec3 ForwardFromEuler(float yaw, float pitch) {
     float yawRad = glm::radians(yaw);
@@ -158,10 +158,10 @@ glm::vec3 ForwardFromEuler(float yaw, float pitch) {
 
 
 // -----------------------------------------------------------
-// 2. ���� Plane 
+// 2. คลาส Plane 
 // -----------------------------------------------------------
 struct Plane {
-    glm::vec3 startingPos{ 0.0f, 150.0f, 0.0f }; // ��Ѻ��������٧���Ҿ�� Terrain �ͧ Code 1
+    glm::vec3 startingPos{ 0.0f, 150.0f, 0.0f }; // ปรับให้อยู่สูงกว่าพื้น Terrain ของ Code 1
     glm::vec3 Position{ startingPos };
     float Yaw = 0.0f;
     float Pitch = 0.0f;
@@ -169,7 +169,7 @@ struct Plane {
 
     float Stamina = 100.0f;
     const float MAX_STAMINA = 100.0f;
-    float ConsumptionRate = 0.005f; // �ѵ�ҡ��Ŵ��ѧ�ҹ
+    float ConsumptionRate = 0.005f; // อัตราการลดพลังงาน
 
     const float MAX_SPEED = 200.0f;
     const float MIN_SPEED = 20.0f;
@@ -225,14 +225,14 @@ struct Plane {
     void Update(float dt) {
         if (dt <= 0.0f || dt > 0.1f) return;
 
-        // --- ���� Logic Stamina ---
-        // ��觺Թ���� Stamina ���Ŵ����
+        // --- เพิ่ม Logic Stamina ---
+        // ยิ่งบินเร็ว Stamina ยิ่งลดเร็ว
         if (Stamina > 0) {
             Stamina -= (Speed / MAX_SPEED) * ConsumptionRate;
         }
         else {
             Stamina = 0;
-            Speed = glm::max(Speed - 10.0f * dt, MIN_SPEED); // ��Ҿ�ѧ�ҹ��� �������Ǩе�
+            Speed = glm::max(Speed - 10.0f * dt, MIN_SPEED); // ถ้าพลังงานหมด ความเร็วจะตก
         }
 
         float rollTurnRate = glm::sin(glm::radians(Roll)) * 0.8 * Speed * dt;
@@ -240,7 +240,7 @@ struct Plane {
 
         glm::vec3 forward = ForwardFromEuler(Yaw, Pitch);
         Position += forward * Speed * dt;
-		// limit position ������Թ��ӡ��Ҿ��/�٧�Թ�
+		// limit position ไม่ให้บินต่ำกว่าพื้น/สูงเกินไป
 		if (Position.y < 50.0f) Position.y = 50.0f;
 		if (Position.y > 600.0f) Position.y = 600.0f;
 
@@ -271,20 +271,20 @@ struct Plane {
 
 };
 
-// ���ҧ����� Global ����Ѻ������
+// สร้างตัวแปร Global สำหรับผู้เล่น
 Plane player(glm::vec3(0.0f, 150.0f, 0.0f));
 bool followPlane = true; 
 // ========== BOIDS SYSTEM ==========
 #include <cmath>
 #include <algorithm>
 
-// ���������� Boids
+// พารามิเตอร์ Boids
 const int   NUM_BOIDS = 500;
 const float BOID_MAX_SPEED = 100.0f;
 const float BOID_MAX_FORCE = 2.0f;
-const float BOID_PERCEPTION = 600.0f;   // ������ͧ��繡ѹ
-const float BOID_SEPARATION = 50.0f;    // ������¡���
-const float BOID_PREDATOR_RAD = 250.0f;  // �����˹ռ�����
+const float BOID_PERCEPTION = 600.0f;   // รัศมีมองเห็นกัน
+const float BOID_SEPARATION = 50.0f;    // รัศมีแยกตัว
+const float BOID_PREDATOR_RAD = 250.0f;  // รัศมีหนีผู้ล่า
 
 glm::vec3 LimitVec(glm::vec3 v, float max_val) {
     float mag = glm::length(v);
@@ -299,7 +299,7 @@ struct BoidEntity {
     glm::vec3 acceleration;
 
     BoidEntity() {
-        // �������˹觺���ͧ���
+        // สุ่มตำแหน่งบนท้องฟ้า
         position = glm::vec3(
             (rand() % 4000) - 2000.0f,
             150.0f + rand() % 200,
@@ -312,31 +312,31 @@ struct BoidEntity {
     glm::vec3 StayInBounds() {
         glm::vec3 steer(0.0f);
 
-        // �ӹǳ�ͺࢵ�ҡ (1024 * 8.0) / 2 = 4096
+        // คำนวณขอบเขตจาก (1024 * 8.0) / 2 = 4096
         float boundX = 4096.0f;
         float boundZ = 4096.0f;
-        float margin = 400.0f; // ��������������� (������ 400 ���Щҡ���ҧ����ҡ)
+        float margin = 400.0f; // ระยะเริ่มเลี้ยว (เพิ่มเป็น 400 เพราะฉากกว้างขึ้นมาก)
 
-        // ��Ǩ�ͺ�ͺ X
+        // ตรวจสอบขอบ X
         if (position.x < -boundX + margin) steer.x = 1.0f;
         else if (position.x > boundX - margin) steer.x = -1.0f;
 
-        // ��Ǩ�ͺ�ͺ Z
+        // ตรวจสอบขอบ Z
         if (position.z < -boundZ + margin) steer.z = 1.0f;
         else if (position.z > boundZ - margin) steer.z = -1.0f;
 
-        // ��Ǩ�ͺ�����٧ (Y)
+        // ตรวจสอบความสูง (Y)
         if (position.y < 60.0f) steer.y = 1.0f;
         else if (position.y > 500.0f) steer.y = -1.0f;
 
         if (glm::length(steer) > 0.0f) {
             steer = glm::normalize(steer) * BOID_MAX_SPEED;
             glm::vec3 force = steer - velocity;
-            return LimitVec(force, BOID_MAX_FORCE * 10.0f); // �����ç��ѡ����ç���������������Ƿѹ�ҡ���ҧ
+            return LimitVec(force, BOID_MAX_FORCE * 10.0f); // เพิ่มแรงผลักให้แรงขึ้นเพื่อให้เลี้ยวทันฉากกว้าง
         }
         return glm::vec3(0.0f);
     }
-    // ---- �ç 3 �ç��ѡ ----
+    // ---- แรง 3 แรงหลัก ----
     glm::vec3 Separation(const std::vector<BoidEntity>& boids) {
         glm::vec3 steer(0.0f);
         int count = 0;
@@ -399,14 +399,14 @@ struct BoidEntity {
         return glm::vec3(0.0f);
     }
 
-    // ---- ˹ռ����� (Player) ----
+    // ---- หนีผู้ล่า (Player) ----
     glm::vec3 FleePredator(const glm::vec3& predatorPos) {
         glm::vec3 diff = position - predatorPos;
         float dist = glm::length(diff);
         if (dist < BOID_PREDATOR_RAD && dist > 0.0f) {
             glm::vec3 desired = glm::normalize(diff) * BOID_MAX_SPEED;
             glm::vec3 steer = desired - velocity;
-            return LimitVec(steer, BOID_MAX_FORCE * 3.0f); // ˹����ǡ��һ���
+            return LimitVec(steer, BOID_MAX_FORCE * 3.0f); // หนีเร็วกว่าปกติ
         }
         return glm::vec3(0.0f);
     }
@@ -424,7 +424,7 @@ struct BoidEntity {
         velocity = LimitVec(velocity, BOID_MAX_SPEED);
         position += velocity * dt;
 
-        // �ӡѴ������Թ��ӡ��Ҿ��
+        // จำกัดไม่ให้บินต่ำกว่าพื้น
         if (position.y < 50.0f)  position.y = 50.0f;
         if (position.y > 600.0f) position.y = 600.0f;
 
@@ -432,31 +432,31 @@ struct BoidEntity {
     }
 };
 
-// ========== GPU Instancing ����Ѻ Boids ==========
-// �Ҵ Boid �繷ç���˹�� (tetrahedron) ��Ҵ���
+// ========== GPU Instancing สำหรับ Boids ==========
+// วาด Boid เป็นทรงสี่หน้า (tetrahedron) ขนาดเล็ก
 struct BoidRenderer {
     unsigned int instanceVBO;
-    Model* modelPtr; // �� pointer ��ѧ���� boid
+    Model* modelPtr; // เก็บ pointer ไปยังโมเดล boid
 
     void Init(Model* targetModel) {
         modelPtr = targetModel;
 
-        // 1. ���ҧ Instance VBO ����Ѻ�� mat4
+        // 1. สร้าง Instance VBO สำหรับเก็บ mat4
         glGenBuffers(1, &instanceVBO);
         glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
         glBufferData(GL_ARRAY_BUFFER, NUM_BOIDS * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
 
-        // 2. �١ Instance VBO ��ҡѺ�ء� Mesh � Model
-        // ���� Model class �ͧ LearnOpenGL ���� vector<Mesh> meshes;
+        // 2. ผูก Instance VBO เข้ากับทุกๆ Mesh ใน Model
+        // ปกติ Model class ของ LearnOpenGL จะเก็บ vector<Mesh> meshes;
         for (unsigned int i = 0; i < modelPtr->meshes.size(); i++) {
             unsigned int VAO = modelPtr->meshes[i].VAO;
             glBindVertexArray(VAO);
 
-            // ��駤�� attribute location 3, 4, 5, 6 (��ͨҡ Pos, Norm, Tex � Mesh ����)
+            // ตั้งค่า attribute location 3, 4, 5, 6 (ต่อจาก Pos, Norm, Tex ใน Mesh ปกติ)
             for (int j = 0; j < 4; j++) {
                 glEnableVertexAttribArray(3 + j);
                 glVertexAttribPointer(3 + j, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(j * sizeof(glm::vec4)));
-                glVertexAttribDivisor(3 + j, 1); // �͡����繢�����Ẻ per-instance
+                glVertexAttribDivisor(3 + j, 1); // บอกว่าเป็นข้อมูลแบบ per-instance
             }
             glBindVertexArray(0);
         }
@@ -467,33 +467,33 @@ struct BoidRenderer {
         for (int i = 0; i < (int)boids.size(); i++) {
             auto& b = boids[i];
             glm::mat4 m(1.0f);
-            // 1. ����ҧ�����˹� Boid 
+            // 1. นำไปวางที่ตำแหน่ง Boid 
             m = glm::translate(m, b.position);
-            // 2. ��ع�����ȷҧ�������Ǵ��� quatLookAt
+            // 2. หมุนตามทิศทางความเร็วด้วย quatLookAt
             if (glm::length(b.velocity) > 0.01f) {
                 glm::vec3 direction = glm::normalize(b.velocity);
                 glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
                 glm::quat lookAtQuat = glm::quatLookAt(direction, up);
                 m = m * glm::mat4_cast(lookAtQuat);
             }
-            // 3. ��ع���ͻ�Ѻ���ȷҧ�ͧ���� .obj
+            // 3. หมุนเพื่อปรับแก้ทิศทางของโมเดล .obj
             m = glm::rotate(m, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            // 4. ��Ѻ��Ҵ Scale
+            // 4. ปรับขนาด Scale
             m = glm::scale(m, glm::vec3(2.5f));
             matrices[i] = m;
         }
 
-        // �ѻവ������� Instance VBO
+        // อัปเดตข้อมูลใน Instance VBO
         glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
         glBufferSubData(GL_ARRAY_BUFFER, 0, matrices.size() * sizeof(glm::mat4), matrices.data());
 
         shader.use();
         for (unsigned int i = 0; i < modelPtr->meshes.size(); i++) {
-            // --- ��ǹ�������: Bind Textures �ͧ Mesh ���� ---
-            // ���� Mesh � LearnOpenGL �����ǡ���� textures
+            // --- ส่วนที่เพิ่ม: Bind Textures ของ Mesh นั้นๆ ---
+            // ปกติ Mesh ใน LearnOpenGL จะมีเวกเตอร์ textures
             for (unsigned int j = 0; j < modelPtr->meshes[i].textures.size(); j++) {
                 glActiveTexture(GL_TEXTURE0 + j);
-                // �觪��� uniform "texture_diffuse1" (���� 2, 3) ��ѧ shader
+                // ส่งชื่อ uniform "texture_diffuse1" (หรือ 2, 3) ไปยัง shader
                 string name = modelPtr->meshes[i].textures[j].type;
                 shader.setInt(name, j);
                 glBindTexture(GL_TEXTURE_2D, modelPtr->meshes[i].textures[j].id);
@@ -503,26 +503,26 @@ struct BoidRenderer {
             glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)modelPtr->meshes[i].indices.size(), GL_UNSIGNED_INT, 0, (GLsizei)boids.size());
             glBindVertexArray(0);
 
-            // �׹��� Active Texture
+            // คืนค่า Active Texture
             glActiveTexture(GL_TEXTURE0);
         }
     }
 };
 
 void checkCollisions(Plane& player, std::vector<BoidEntity>& boids) {
-    float collisionRadius = 15.0f; // ���з������Ҫ�
+    float collisionRadius = 15.0f; // ระยะที่ถือว่าชน
 
-    // �� iterator �������ź�������͡�ҡ vector ���ʹ��¢��ǹ�ٻ
+    // ใช้ iterator เพื่อให้ลบข้อมูลออกจาก vector ได้ปลอดภัยขณะวนลูป
     for (auto it = boids.begin(); it != boids.end(); ) {
         float dist = glm::distance(player.Position, it->position);
 
         if (dist < collisionRadius) {
-            // �Դ��ê�!
-            player.RefillStamina(100.0f); // �����ѧ�ҹ 20 ˹���
-            it = boids.erase(it);        // ź boid ��Ƿ�誹�͡
+            // เกิดการชน!
+            player.RefillStamina(100.0f); // เติมพลังงาน 20 หน่วย
+            it = boids.erase(it);        // ลบ boid ตัวที่ชนออก
             std::cout << "Boid Captured! Remaining: " << boids.size() << std::endl;
-            // SND_ASYNC = ������§Ẻ�����ش�� (������ҧ)
-            // SND_FILENAME = �͡��ҵ���á��ͪ������
+            // SND_ASYNC = เล่นเสียงแบบไม่หยุดรอ (เกมไม่ค้าง)
+            // SND_FILENAME = บอกว่าตัวแรกคือชื่อไฟล์
             PlaySound(TEXT(FileSystem::getPath("/resources/audio/pickup.wav").c_str()), NULL, SND_ASYNC | SND_FILENAME);
         }
         else {
@@ -565,10 +565,10 @@ int main() {
     unsigned int texSnow = loadTexture(FileSystem::getPath("resources/terrain/heightmaps/snow.jpg").c_str());
 
     terrainShader.use();
-    // --- ������ǹ Lighting �ç��� ---
-    glm::vec3 lightPos(1200.0f, 1000.0f, 1200.0f); // ���˹觴ǧ�ҷԵ��
+    // --- เพิ่มส่วน Lighting ตรงนี้ ---
+    glm::vec3 lightPos(1200.0f, 1000.0f, 1200.0f); // ตำแหน่งดวงอาทิตย์
     terrainShader.setVec3("lightPos", lightPos);
-    terrainShader.setVec3("lightColor", glm::vec3(1.0f, 0.9f, 0.8f)); // ���ⷹ���
+    terrainShader.setVec3("lightColor", glm::vec3(1.0f, 0.9f, 0.8f)); // สีไฟโทนอุ่น
     terrainShader.setVec3("viewPos", camera.Position);
 
     terrainShader.setInt("uTextureWater", 0);
@@ -654,17 +654,17 @@ int main() {
     skyboxShader.setInt("skybox", 0);
 
     // -----------------------------------------------------------
-    // 3. ��Ŵ Shader ��� Model �ͧ����ͧ�Թ
+    // 3. โหลด Shader และ Model ของเครื่องบิน
     // -----------------------------------------------------------
-    Shader modelShader("model.vs", "model.fs"); // �س��ͧ�� Shader ��� (�֧�Ҩҡ Code 2 �����)
+    Shader modelShader("model.vs", "model.fs"); // คุณต้องมี Shader นี้ (ดึงมาจาก Code 2 ได้เลย)
     Model planeModel(FileSystem::getPath("resources/objects/ship1/Untitled1.obj").c_str());
 
-    // �����������ҧ���ͧ�ҡ����ͧ�Թ
+    // ตัวแปรระยะห่างกล้องจากเครื่องบิน
     float camDistance = 30.0f;
     float camHeight = 10.0f;
-    // ===== � main() ��ѧ load shader/model ���� =====
+    // ===== ใน main() หลัง load shader/model อื่นๆ =====
 
-    // ���ҧ Boids
+    // สร้าง Boids
     std::vector<BoidEntity> boids(NUM_BOIDS);
     Model boidModel(FileSystem::getPath("resources/objects/ship1/Untitled.obj").c_str());
     BoidRenderer boidRenderer;
@@ -679,7 +679,7 @@ int main() {
 
         processInput(window);
 
-        // �ѻവ���˹�����ͧ�Թ��������ͧ��觵��
+        // อัปเดตตำแหน่งเครื่องบินและให้กล้องวิ่งตาม
         player.Update(deltaTime);
 
         if (followPlane) {
@@ -689,7 +689,7 @@ int main() {
         }
 
 
-        // �ѻവ Boids �ء���
+        // อัปเดต Boids ทุกตัว
         for (auto& b : boids)
             b.Update(boids, player.Position, deltaTime);
         checkCollisions(player, boids);
@@ -697,7 +697,7 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // �Ҵ Terrain 
+        // วาด Terrain 
         terrainShader.use();
         glm::vec3 lightPos(2048.0f, 1500.0f, 2048.0f);
         terrainShader.setVec3("lightPos", lightPos);
@@ -719,7 +719,7 @@ int main() {
         glActiveTexture(GL_TEXTURE4); glBindTexture(GL_TEXTURE_2D, texSnow);
         terrain.Draw(terrainShader);
 
-        // �Ҵ Boids
+        // วาด Boids
         boidShader.use();
         boidShader.setMat4("view", view);
         boidShader.setMat4("projection", projection);
@@ -727,7 +727,7 @@ int main() {
         boidShader.setVec3("lightColor", glm::vec3(1.0f, 0.95f, 0.9f));
         boidRenderer.Draw(boids, boidShader);
 
-        // �Ҵ��������ͧ�Թ
+        // วาดโมเดลเครื่องบิน
         modelShader.use();
         modelShader.setVec3("lightPos", lightPos);
         modelShader.setVec3("lightColor", glm::vec3(1.0f, 0.95f, 0.9f));
@@ -744,7 +744,7 @@ int main() {
         modelShader.setVec3("lightColor", glm::vec3(1.0f, 0.95f, 0.9f));
         planeModel.Draw(modelShader);
 
-        // �Ҵ Skybox 
+        // วาด Skybox 
         glDepthFunc(GL_LEQUAL);
         skyboxShader.use();
         view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
@@ -758,18 +758,18 @@ int main() {
         glBindVertexArray(0);
         glDepthFunc(GL_LESS);
 
-        // 1. �������� ImGui
+        // 1. เริ่มเฟรม ImGui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 2. ���ҧ˹�ҵ�ҧ UI Ẻ�����
+        // 2. สร้างหน้าต่าง UI แบบโปร่งใส
         ImGui::SetNextWindowPos(ImVec2(10, 10));
         ImGui::Begin("Game Stats", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
         ImGui::Text("Boids Remaining: %d", (int)boids.size());
         ImGui::Text("Speed: %.1f km/h", player.Speed);
 
-        // ᶺ��ѧ�ҹ Stamina
+        // แถบพลังงาน Stamina
         ImVec4 color = player.Stamina > 30 ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1);
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
         ImGui::ProgressBar(player.Stamina / 100.0f, ImVec2(200, 20), "STAMINA");
@@ -783,7 +783,7 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    // --- ��͹ glfwTerminate() ---
+    // --- ก่อน glfwTerminate() ---
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -792,7 +792,7 @@ int main() {
     return 0;
 }
 
-// Utility function (loadTexture, callbacks, processInput ����͹����ͧ�س)
+// Utility function (loadTexture, callbacks, processInput เหมือนเดิมของคุณ)
 unsigned int loadTexture(char const* path) {
     unsigned int textureID;
     glGenTextures(1, &textureID);
@@ -831,7 +831,7 @@ unsigned int loadTexture(char const* path) {
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    // �ѧ�Ѻ����ͧ�Թ
+    // บังคับเครื่องบิน
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) player.PitchUp(deltaTime);
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) player.PitchDown(deltaTime);
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) player.TurnLeft(deltaTime);
