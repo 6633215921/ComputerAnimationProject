@@ -1,6 +1,6 @@
 # Blender 5.0.1
 # www.blender.org
-mtllib Untitled.mtl
+mtllib BoidModel.mtl
 o Bird
 v 0.049688 1.979495 -2.971156
 v 0.033340 2.005828 -2.960750

@@ -1,6 +1,6 @@
 # Blender 5.0.1
 # www.blender.org
-mtllib Untitled1.mtl
+mtllib Player.mtl
 o HARPY.001
 v -1.092113 -2.952081 3.466022
 v -0.000001 -0.140410 -2.059807

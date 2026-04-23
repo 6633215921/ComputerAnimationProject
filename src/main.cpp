@@ -555,7 +555,7 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
-    Shader terrainShader("terrain.vs", "terrain.fs");
+    Shader terrainShader("shaders/terrain.vs", "shaders/terrain.fs");
     HeightmapTerrain terrain(FileSystem::getPath("resources/terrain/heightmaps/iceland_heightmap.png").c_str());
     // Load textures
     unsigned int texWater = loadTexture(FileSystem::getPath("resources/terrain/heightmaps/water.jpg").c_str());
@@ -579,7 +579,7 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader skyboxShader("skybox.vs", "skybox.fs");
+    Shader skyboxShader("shaders/skybox.vs", "shaders/skybox.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     float skyboxVertices[] = {
@@ -656,8 +656,8 @@ int main() {
     // -----------------------------------------------------------
     // 3. โหลด Shader และ Model ของเครื่องบิน
     // -----------------------------------------------------------
-    Shader modelShader("model.vs", "model.fs"); // คุณต้องมี Shader นี้ (ดึงมาจาก Code 2 ได้เลย)
-    Model planeModel(FileSystem::getPath("resources/objects/ship1/Untitled1.obj").c_str());
+    Shader modelShader("shaders/model.vs", "shaders/model.fs"); // คุณต้องมี Shader นี้ (ดึงมาจาก Code 2 ได้เลย)
+    Model planeModel(FileSystem::getPath("resources/objects/ship1/Player.obj").c_str());
 
     // ตัวแปรระยะห่างกล้องจากเครื่องบิน
     float camDistance = 30.0f;
@@ -666,11 +666,11 @@ int main() {
 
     // สร้าง Boids
     std::vector<BoidEntity> boids(NUM_BOIDS);
-    Model boidModel(FileSystem::getPath("resources/objects/ship1/Untitled.obj").c_str());
+    Model boidModel(FileSystem::getPath("resources/objects/ship1/BoidModel.obj").c_str());
     BoidRenderer boidRenderer;
     boidRenderer.Init(&boidModel);
 
-    Shader boidShader("boid.vs", "boid.fs");
+    Shader boidShader("shaders/boid.vs", "shaders/boid.fs");
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrame = glfwGetTime();
