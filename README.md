@@ -1,3 +1,5 @@
+https://github.com/user-attachments/assets/51b24ca0-a862-4074-a963-80d551f9f2b8
+
 # Interactive 3D Bird Predator Simulation with Boids-Based Prey
 
 ## Problem
