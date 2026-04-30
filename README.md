@@ -84,6 +84,4 @@ The proposed system extends Boids with additional real-time behaviors and render
 
 ## How to Run
 
-```bash
-pip install -r requirements.txt
-python src/main.py
+double click on main.exe
